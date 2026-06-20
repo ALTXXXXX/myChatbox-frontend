@@ -1,7 +1,7 @@
 import axios, { type AxiosInstance, type AxiosResponse, type InternalAxiosRequestConfig } from 'axios'
 
 /** 创建 Axios 实例，支持扩展多接口 */
-const createInstance = (baseURL: string, timeout = 30000): AxiosInstance => {
+const createInstance = (baseURL: string, timeout = 8000): AxiosInstance => {
   const instance = axios.create({
     baseURL,
     timeout,

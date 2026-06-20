@@ -6,7 +6,27 @@ import type { ChatMessage } from '@/types'
 function generateId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
 }
+/** 延迟函数 */
+function delay(ms: number) {
+  return new Promise(resolve => setTimeout(resolve, ms))
+}
+async function retryRequest<T>(
+  fn: () => Promise<T>,
+  retries = 3,
+){
+  try{
+    return await fn()
+  }catch(e){
+    if(retries <= 0) throw e
+    console.log(`[Retry Request] Retries left: ${retries}`)
+    const retryCount = 4 - retries
+    const waitTime = Math.pow(2, retryCount) * 3000 + Math.random() * 300
+    await delay(waitTime)
+    return retryRequest(fn, retries - 1)
+  }
 
+}
+   
 export function useChat() {
   /** 消息列表 */
   const messages = ref<ChatMessage[]>([])
@@ -14,7 +34,7 @@ export function useChat() {
   const loading = ref(false)
   /** 错误信息 */
   const error = ref<string | null>(null)
-
+   
   /** 发送消息 */
   async function send(text: string): Promise<void> {
     const trimmed = text.trim()
@@ -35,7 +55,9 @@ export function useChat() {
 
     // 3) 调用后端
     try {
-      const res = await sendMessage({ question: trimmed })
+      const res = await retryRequest(
+        () => sendMessage({ question: trimmed }),
+      )
       const assistantMsg: ChatMessage = {
         id: generateId(),
         role: 'assistant',
@@ -44,7 +66,7 @@ export function useChat() {
       }
       messages.value.push(assistantMsg)
     } catch (e: any) {
-      error.value = e?.message || '请求失败，请稍后重试'
+      error.value =  '请求失败，请稍后重试'
     } finally {
       loading.value = false
     }
